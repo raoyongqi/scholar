@@ -1,0 +1,13 @@
+*.xlsx
+*.csv
+data/
+*.tif
+*.nc
+*.png
+*.pkl
+*.pth
+*.exe
+*.json
+folder/
+*.html
+*.tex
