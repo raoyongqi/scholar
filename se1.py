@@ -29,11 +29,11 @@ WebDriverWait(driver, 10).until(
 
 # 定位到搜索框并输入 "Geo-location"
 search_box = driver.find_element(By.ID, "gs_hdr_tsi")
-keywords = "geolocation machine learning"
+keywords = "worldclim machine learning"
 search_box.send_keys(keywords)
 search_box.send_keys(Keys.RETURN)  # 按下回车键进行搜索
 
-for i in range(1,1000):
+for i in range(1,100):
 # 等待页面加载完成
 # 等待搜索结果的最后一个部分加载
     WebDriverWait(driver, 180).until(
@@ -90,7 +90,7 @@ for i in range(1,1000):
     print(json_result)
 
     # 保存 JSON 结果到文件
-    with open(f'{keywords}_{i}.json', 'w', encoding='utf-8') as f:
+    with open(f'folder/{keywords}_{i}.json', 'w', encoding='utf-8') as f:
         f.write(json_result)
 
     driver.execute_script("""
