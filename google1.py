@@ -3,7 +3,7 @@ import json
 
 # 读取原始的 JavaScript 文件内容
 js_file_path = "background.js"  # 原 JS 文件路径
-output_js_file_path = "google1.js"  # 处理后的新 JS 文件路径
+output_js_file_path = "google1.txt"  # 处理后的新文件路径
 
 # 读取 JS 文件
 with open(js_file_path, "r", encoding="utf-8") as f:
@@ -19,19 +19,24 @@ if match:
     allowed_urls_str = re.sub(r'\*', '', allowed_urls_str)
     
     # 将处理后的字符串转换为 Python 列表
-    allowed_urls = json.loads(allowed_urls_str)
+    try:
+        import ast
+        allowed_urls = ast.literal_eval(allowed_urls_str)
+    except Exception as e:
+        print(f"解析数组时出错: {e}")
+        allowed_urls = []
 
     # 从列表中移除 google.com
-    print(allowed_urls)
     allowed_urls = [url for url in allowed_urls if 'google' not in url]
 
-    # 将处理后的数组写回新的 JS 文件
-    new_js_content = re.sub(r'const allowedUrls = \[.*?\];', f'const allowedUrls = {json.dumps(allowed_urls, indent=2)};', js_content, flags=re.DOTALL)
+    # 格式化为每个 URL 保留引号和逗号
+    formatted_urls = [f'"{url}",' for url in allowed_urls]
 
-    # 保存处理后的内容到新的 JS 文件
+    # 将格式化后的 URL 按行写入新的文本文件
     with open(output_js_file_path, "w", encoding="utf-8") as f:
-        f.write(new_js_content)
+        for url in formatted_urls:
+            f.write(f"{url}\n")
 
-    print(f"处理后的 JavaScript 文件已保存为 {output_js_file_path}")
+    print(f"处理后的 URL 已按行写入到 {output_js_file_path}")
 else:
     print("未找到 allowedUrls 数组")
