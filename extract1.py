@@ -34,10 +34,29 @@ for json_file in json_files:
 # 去重并排序
 hosts = list(dict.fromkeys(hosts))  # 去除重复项
 hosts.sort()  # 可选：按字母顺序排序
-# 读取已有的 JS 文件
-# 读取 .js 文件
+
+
+url_path = 'url'  # 需要读取的 TXT 文件夹路径
+
+url_result = set() # 使用集合来去重
+
+for filename in os.listdir(url_path):
+    # 检查文件是否为 .txt 文件
+    if filename.endswith('.txt'):
+        file_path = os.path.join(url_path, filename)
+        
+        # 打开并读取 TXT 文件
+        with open(file_path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+            for i, line in enumerate(lines):
+                line = line.strip()  # 去除每行的首尾空白符
+                url_result.add(line)  # 添加到集合中
+
+# print(url_result)
 with open('background.js','r', encoding='utf-8') as file:
     js_content = file.read()
+
+
 import re
 # 使用正则表达式匹配 'const allowedUrls = [' 后的数组内容
 match = re.search(r'const\s+allowedUrls\s*=\s*\[([^\]]*)\];', js_content)
@@ -48,25 +67,31 @@ if match:
     sorted_urls = sorted(urls, key=len)
     
     # 输出排序后的结果
-    print(sorted_urls)
+    # print(sorted_urls)
+import csv
+import json
+
+# 读取 CSV 文件
+csv_file = "url/alexa1m_dataset.csv"
+js_file = "output.js"
+
+domains = []  # 存储符合条件的域名
+
+with open(csv_file, "r", encoding="utf-8") as file:
+    reader = csv.reader(file)
+    for row in reader:
+        if len(row) > 1:  # 确保该行有至少两列
+            domain = row[1].strip()  # 去除首尾空格
+            if ".org" in domain or ".edu" in domain:  # 只存储包含 .org 或 .edu 的域名
+                domains.append(domain)
 
 
-# 提取已有 allowedUrls 列表
+combined_hosts = list(set(list(hosts) + list(sorted_urls) + list(url_result)+domains))
 
-
-
-if any(item == '' for item in sorted_urls):
-    print("列表中有空字符串")
-else:
-    print("列表中没有空字符串")
-# 合并新的 hosts 和已有的 allowedUrls
-combined_hosts = list(set(hosts + sorted_urls))  # 合并并去重
-
-
-# 保存为新的 JS 文件
 js_content_new = f"const allowedUrls = {json.dumps(combined_hosts, ensure_ascii=False, indent=4)};"
 
 with open('newbackground.js', 'w', encoding='utf-8') as js_file:
+
     js_file.write(js_content_new)
 
-print("Combined and de-duplicated hosts saved to newAllowedUrls.js")
+print("Combined and de-duplicated hosts saved to newbackground.js")

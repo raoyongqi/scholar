@@ -1,10 +1,9 @@
 import re
 import os
-import json
 import ast
 
 # 设置文件路径
-js_file_path = "background.js"  # 原 JS 文件路径
+js_file_path = "newbackground.js"  # 原 JS 文件路径
 folder_path = 'url'  # 需要读取的 TXT 文件夹路径
 
 output_js_file_path = "google1.txt"  # 处理后的新文件路径
@@ -16,6 +15,7 @@ with open(js_file_path, "r", encoding="utf-8") as f:
 
 # 使用正则表达式提取 allowedUrls 数组
 match = re.search(r'const allowedUrls = (\[.*?\]);', js_content, re.DOTALL)
+
 if match:
     # 提取数组字符串并处理
     allowed_urls_str = match.group(1)
@@ -37,7 +37,7 @@ if match:
 
 
 # 用于保存合并后的结果
-merged_result = []
+merged_result = set()  # 使用集合来去重
 
 # 遍历文件夹中的所有 TXT 文件
 for filename in os.listdir(folder_path):
@@ -58,11 +58,14 @@ for filename in os.listdir(folder_path):
             if i != len(lines) - 1:
                 quoted_line += ','
 
-            merged_result.append(quoted_line)
+            merged_result.add(quoted_line)  # 添加到集合中
 
-# 合并处理后的内容
-merged_text = '\n'.join(merged_result+formatted_urls)
+# 将 formatted_urls 添加到集合中，避免重复
+for url in formatted_urls:
+    merged_result.add(url)
 
+# 合并处理后的内容并去重
+merged_text = '\n'.join(sorted(merged_result))  # 使用 sorted() 对内容进行排序，便于查看
 
 # 如果需要保存到新的文件
 with open(output_path, 'w', encoding='utf-8') as output_file:
