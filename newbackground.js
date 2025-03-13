@@ -25665,7 +25665,6 @@ const allowedUrls = [
     "rozan.org",
     "seeddms.org",
     "eliteunitedcrew.org",
-    "ztube.org",
     "ce.uci.edu",
     "smena.education",
     "utepsa.edu",

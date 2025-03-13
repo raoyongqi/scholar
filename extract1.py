@@ -67,26 +67,10 @@ if match:
     sorted_urls = sorted(urls, key=len)
     
     # 输出排序后的结果
-    # print(sorted_urls)
-import csv
-import json
-
-# 读取 CSV 文件
-csv_file = "url/alexa1m_dataset.csv"
-js_file = "output.js"
-
-domains = []  # 存储符合条件的域名
-
-with open(csv_file, "r", encoding="utf-8") as file:
-    reader = csv.reader(file)
-    for row in reader:
-        if len(row) > 1:  # 确保该行有至少两列
-            domain = row[1].strip()  # 去除首尾空格
-            if ".org" in domain or ".edu" in domain:  # 只存储包含 .org 或 .edu 的域名
-                domains.append(domain)
+ 
 
 
-combined_hosts = list(set(list(hosts) + list(sorted_urls) + list(url_result)+domains))
+combined_hosts = list(set(list(hosts) + list(sorted_urls) + list(url_result)))
 
 js_content_new = f"const allowedUrls = {json.dumps(combined_hosts, ensure_ascii=False, indent=4)};"
 

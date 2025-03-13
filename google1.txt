@@ -27417,7 +27417,6 @@
 "zsmu.edu.ua",
 "zsw.org",
 "ztu.edu.ua",
-"ztube.org",
 "zu.edu.eg",
 "zu.edu.jo",
 "zu.edu.ly",
