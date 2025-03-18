@@ -74,7 +74,7 @@ with open(csv_file, "r", encoding="utf-8") as file:
         if len(row) > 1:  # 确保该行有至少两列
             domain = row[1].strip()  # 去除首尾空格
             # 只存储包含 "vue" 或 "react" 且不包含 "pron" 的域名
-            if ("vue" in domain or "react" in domain) and "pron" not in domain:
+            if ("vue" in domain or "react" in domain or "spark" in domain or "analyse" in domain) and "pron" not in domain:
                 domains.append(domain)
 
 # 合并所有结果，并去重

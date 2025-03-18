@@ -1532,15 +1532,3 @@ with open(cpp_file_path, 'w', encoding='utf-8') as cpp_file:
 
 print(f"C++ 文件已保存为 {cpp_file_path}")
 
-import json
-# 创建 JSON 对象列表，每个 URL 一个对象
-json_data = [{"url": url} for url in merged_text]
-
-# 保存为 JSON 文件，每个对象一行
-json_file_path = "urls.json"
-with open(json_file_path, 'w', encoding='utf-8') as json_file:
-    for item in json_data:
-        json.dump(item, json_file, ensure_ascii=False)
-        json_file.write("\n")  # 每个对象一行
-
-print(f"JSON 文件已保存为 {json_file_path}")
