@@ -77,8 +77,75 @@ with open(csv_file, "r", encoding="utf-8") as file:
             if ("vue" in domain or "react" in domain or "spark" in domain or "analyse" in domain) and "pron" not in domain:
                 domains.append(domain)
 
-# 合并所有结果，并去重
-combined_hosts = list(set(hosts + sorted_urls + list(url_result) + domains))
+import os
+import markdown
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+
+# 获取所有 .md 文件
+weekly_files = [f for f in os.listdir('weekly-master/docs') if f.endswith('.md')]
+
+# 创建一个集合来存储不重复的主机
+weekly_hosts = set()
+
+# 遍历所有 .md 文件
+for md_file in weekly_files:
+    md_file_path = os.path.join('weekly-master/docs', md_file)
+    
+    # 读取每个Markdown文件内容
+    with open(md_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # 将Markdown转换为HTML
+    html = markdown.markdown(content)
+
+    # 使用BeautifulSoup解析HTML
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # 提取所有链接
+    urls = [a['href'] for a in soup.find_all('a', href=True)]
+
+    # 提取每个URL的host并添加到集合
+    for url in urls:
+        try:
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc  # 提取URL中的host
+            if host:  # 确保host存在
+                weekly_hosts.add(host)
+        except Exception as e:
+            print(f"Error parsing URL {url} in file {md_file}: {e}")
+awesome_files = [f for f in os.listdir('awesome') if f.endswith('.html')]
+
+# 创建一个集合来存储不重复的主机
+
+awesome_hosts = set()
+
+# 遍历所有 .html 文件
+for html_file in awesome_files:
+    html_file_path = os.path.join('awesome', html_file)
+    
+    # 读取每个HTML文件内容
+    with open(html_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # 使用BeautifulSoup解析HTML
+    soup = BeautifulSoup(content, 'html.parser')
+
+    # 提取所有链接
+    urls = [a['href'] for a in soup.find_all('a', href=True)]
+
+    # 提取每个URL的host并添加到集合
+    for url in urls:
+        try:
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc  # 提取URL中的host
+            if host:  # 确保host存在
+                awesome_hosts.add(host)
+        except Exception as e:
+            print(f"Error parsing URL {url} in file {html_file}: {e}")
+
+
+combined_hosts = list(set(hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)))
 
 # 生成新的 background.js 内容
 js_content_new = f"""
