@@ -105,7 +105,7 @@ def search_and_scrape(driver, keywords):
         }
         """)
 
-        time.sleep(5)
+        time.sleep(30)
 
 # 等待并点击 Tor 浏览器的 "Connect" 按钮
 

@@ -34,7 +34,11 @@ for json_file in json_files:
 hosts = list(dict.fromkeys(hosts))  # 去除重复项
 hosts.sort()  # 可选：按字母顺序排序
 
-# 读取 TXT 文件夹路径
+import os
+#################
+# 处理 org_or_edu_urls.txt
+############################
+
 url_path = 'url'  
 
 url_result = set()  # 使用集合来去重
@@ -52,6 +56,25 @@ for filename in os.listdir(url_path):
                 if line:  # 确保不是空行
                     url_result.add(line)  # 添加到集合中
 
+# 定义一个空集合
+error_set = set()
+with open('error_urls.txt', 'r') as file:
+    for line in file:
+        # 去掉行末的换行符并将每行添加到集合中
+        error_set.add(line.strip())
+
+# 打开文件并逐行读取
+overlap = url_result.intersection(error_set)
+
+if overlap:
+    print("重叠元素:", overlap)
+else:
+    print("没有重叠元素")
+
+url_result= url_result-overlap 
+#################
+# 处理 org_or_edu_urls.txt
+############################
 # 读取 background.js 内容
 with open('background.js','r', encoding='utf-8') as file:
     js_content = file.read()
@@ -124,12 +147,35 @@ awesome_hosts = set()
 for html_file in awesome_files:
     html_file_path = os.path.join('awesome', html_file)
     
-    # 读取每个HTML文件内容
     with open(html_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 使用BeautifulSoup解析HTML
     soup = BeautifulSoup(content, 'html.parser')
+
+    urls = [a['href'] for a in soup.find_all('a', href=True)]
+
+    for url in urls:
+        try:
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc  # 提取URL中的host
+            if host:  # 确保host存在
+                awesome_hosts.add(host)
+        except Exception as e:
+            print(f"Error parsing URL {url} in file {html_file}: {e}")
+
+career_files = [f for f in os.listdir('career') if f.endswith('.md')]
+
+career_hosts = set()
+
+for md_file in career_files:
+    md_file_path = os.path.join('career', md_file)
+    
+    with open(md_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    html = markdown.markdown(content)
+
+    soup = BeautifulSoup(html, 'html.parser')
 
     # 提取所有链接
     urls = [a['href'] for a in soup.find_all('a', href=True)]
@@ -140,12 +186,10 @@ for html_file in awesome_files:
             parsed_url = urlparse(url)
             host = parsed_url.netloc  # 提取URL中的host
             if host:  # 确保host存在
-                awesome_hosts.add(host)
+                career_hosts.add(host)
         except Exception as e:
-            print(f"Error parsing URL {url} in file {html_file}: {e}")
-
-
-combined_hosts = list(set(hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)))
+            print(f"Error parsing URL {url} in file {md_file}: {e}")
+combined_hosts = list(set(hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)+list(career_hosts)))
 
 # 生成新的 background.js 内容
 js_content_new = f"""
