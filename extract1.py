@@ -3,21 +3,23 @@ import os
 import re
 import csv
 from urllib.parse import urlparse
+import pandas as pd
+import markdown
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+###
+# 来自谷歌学术的url会存在不能访问的情况
 
-# 设置文件夹路径
+##
 folder_path = 'folder'
 
-# 获取文件夹中所有 .json 文件
 json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
 
-# 存储所有 eprint_url 的主机部分
-hosts = []
+scholar_hosts = []
 
-# 遍历所有 JSON 文件
 for json_file in json_files:
     json_path = os.path.join(folder_path, json_file)
     
-    # 读取 JSON 文件
     with open(json_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
     
@@ -28,13 +30,47 @@ for json_file in json_files:
             host = urlparse(url).hostname
             # 去掉 www.
             host = host.replace('www.', '')
-            hosts.append(host)
+            scholar_hosts.append(host)
 
-# 去重并排序
-hosts = list(dict.fromkeys(hosts))  # 去除重复项
-hosts.sort()  # 可选：按字母顺序排序
 
-import os
+scholar_hosts_set = set(scholar_hosts)
+# 定义一个空集合
+error_set = set()
+with open('error_urls.txt', 'r') as file:
+    for line in file:
+        # 去掉行末的换行符并将每行添加到集合中
+        error_set.add(line.strip())
+
+overlap = scholar_hosts_set.intersection(error_set)
+scholar_hosts_set= scholar_hosts_set-overlap 
+
+
+
+#####
+#alexa1m_dataset 基本不存在不能访问的url ，暂时省去取差集的步骤
+######
+# 读取 CSV 文件
+df = pd.read_csv('url/alexa1m_dataset.csv')
+
+# 提取第二列（索引为 1 的列），并将其转换为集合（去除重复的元素）
+alexa1m_column_set = set(df.iloc[:, 1])
+
+# 过滤包含 "react"、"vue"、".ai" 或 "journey" 的元素
+alexa1m_set = set({item for item in alexa1m_column_set if 
+                'react' in str(item).lower() or
+                'vue' in str(item).lower() or
+                '.ai' in str(item).lower() and str(item).lower().endswith('.ai') or
+                'journey' in str(item).lower() or
+                'github.io' in str(item).lower() and str(item).lower().endswith('github.io') or
+                'blogspot.com' in str(item).lower() and str(item).lower().endswith('blogspot.com') or
+                'myshopify.com' in str(item).lower() and str(item).lower().endswith('myshopify.com') or
+                'wordpress.com' in str(item).lower() and str(item).lower().endswith('wordpress.com') or
+                'livejournal.com' in str(item).lower() and str(item).lower().endswith('livejournal.com') or
+                'readthedocs.io' in str(item).lower() and str(item).lower().endswith('readthedocs.io')}
+)
+
+
+
 #################
 # 处理 org_or_edu_urls.txt
 ############################
@@ -63,7 +99,6 @@ with open('error_urls.txt', 'r') as file:
         # 去掉行末的换行符并将每行添加到集合中
         error_set.add(line.strip())
 
-# 打开文件并逐行读取
 overlap = url_result.intersection(error_set)
 
 if overlap:
@@ -71,7 +106,7 @@ if overlap:
 else:
     print("没有重叠元素")
 
-url_result= url_result-overlap 
+url_result = url_result-overlap 
 #################
 # 处理 org_or_edu_urls.txt
 ############################
@@ -84,8 +119,8 @@ match = re.search(r'const\s+allowedUrls\s*=\s*\[([^\]]*)\];', js_content)
 
 if match:
     # 提取数组中的 URL 并按 URL 长度排序
-    urls = re.findall(r'"([^"]+)"', match.group(1))
-    sorted_urls = sorted(urls, key=len)
+    
+    origin_urls = re.findall(r'"([^"]+)"', match.group(1))
     
 # 读取 CSV 文件并处理
 csv_file = "url/alexa1m_dataset.csv"
@@ -100,10 +135,6 @@ with open(csv_file, "r", encoding="utf-8") as file:
             if ("vue" in domain or "react" in domain or "spark" in domain or "analyse" in domain) and "pron" not in domain:
                 domains.append(domain)
 
-import os
-import markdown
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 # 获取所有 .md 文件
 weekly_files = [f for f in os.listdir('weekly-master/docs') if f.endswith('.md')]
@@ -189,7 +220,12 @@ for md_file in career_files:
                 career_hosts.add(host)
         except Exception as e:
             print(f"Error parsing URL {url} in file {md_file}: {e}")
-combined_hosts = list(set(hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)+list(career_hosts)))
+
+
+########################
+#数据包括谷歌学术+原本的url
+########################
+combined_hosts = list(set(scholar_hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)+list(career_hosts)))
 
 # 生成新的 background.js 内容
 js_content_new = f"""
