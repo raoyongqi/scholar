@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 ###
 # 来自谷歌学术的url会存在不能访问的情况
-
 ##
 folder_path = 'folder'
 
@@ -42,7 +41,8 @@ with open('error_urls.txt', 'r') as file:
         error_set.add(line.strip())
 
 overlap = scholar_hosts_set.intersection(error_set)
-scholar_hosts_set= scholar_hosts_set-overlap 
+
+scholar_hosts_set= scholar_hosts_set - overlap 
 
 
 
@@ -77,7 +77,7 @@ alexa1m_set = set({item for item in alexa1m_column_set if
 
 url_path = 'url'  
 
-url_result = set()  # 使用集合来去重
+org_or_edu_urls = set()  # 使用集合来去重
 
 for filename in os.listdir(url_path):
     # 检查文件是否为 .txt 文件
@@ -90,91 +90,92 @@ for filename in os.listdir(url_path):
             for line in lines:
                 line = line.strip()  # 去除每行的首尾空白符
                 if line:  # 确保不是空行
-                    url_result.add(line)  # 添加到集合中
+                    org_or_edu_urls.add(line)  # 添加到集合中
 
-# 定义一个空集合
-error_set = set()
-with open('error_urls.txt', 'r') as file:
-    for line in file:
-        # 去掉行末的换行符并将每行添加到集合中
-        error_set.add(line.strip())
 
-overlap = url_result.intersection(error_set)
+overlap = org_or_edu_urls.intersection(error_set)
 
 if overlap:
     print("重叠元素:", overlap)
 else:
     print("没有重叠元素")
 
-url_result = url_result-overlap 
+org_or_edu_urls = org_or_edu_urls-overlap 
+
+org_or_edu_urls -= org_or_edu_urls & error_set
+
 #################
-# 处理 org_or_edu_urls.txt
+# 读取原始js内容
 ############################
 # 读取 background.js 内容
-with open('background.js','r', encoding='utf-8') as file:
+def extract_and_sort_urls(js_content, variable_name):
+    """
+    提取并过滤特定 JS 内容中的 URL 列表。
+    
+    :param js_content: JS 内容的字符串
+    :param variable_name: 变量名（如 'beginWithStar' 或 'beginWithoutStar'
+    :return: 排序并过滤后的 URL 列表
+    """
+    match = re.search(rf'const\s+{variable_name}\s*=\s*\[([^\]]*)\];', js_content)
+    
+    if match:
+        urls = re.findall(r'"([^"]+)"', match.group(1))
+        sorted_urls = sorted(urls, key=len)
+        filtered_urls = [url for url in sorted_urls if url not in ['ws', 'www',"localhost","127.0.0.1"]]
+        return filtered_urls
+    return []
+
+with open('background.js', 'r', encoding='utf-8') as file:
     js_content = file.read()
 
-# 使用正则表达式匹配 'const allowedUrls = [' 后的数组内容
-match = re.search(r'const\s+allowedUrls\s*=\s*\[([^\]]*)\];', js_content)
+begin_with_star_urls = extract_and_sort_urls(js_content, 'beginWithStar')
+begin_without_star_urls = extract_and_sort_urls(js_content, 'beginWithoutStar')
 
-if match:
-    # 提取数组中的 URL 并按 URL 长度排序
-    
-    origin_urls = re.findall(r'"([^"]+)"', match.group(1))
-    
-# 读取 CSV 文件并处理
-csv_file = "url/alexa1m_dataset.csv"
-domains = []  # 存储符合条件的域名
 
-with open(csv_file, "r", encoding="utf-8") as file:
-    reader = csv.reader(file)
-    for row in reader:
-        if len(row) > 1:  # 确保该行有至少两列
-            domain = row[1].strip()  # 去除首尾空格
-            # 只存储包含 "vue" 或 "react" 且不包含 "pron" 的域名
-            if ("vue" in domain or "react" in domain or "spark" in domain or "analyse" in domain) and "pron" not in domain:
-                domains.append(domain)
+#################
+# 读取weekly-md内容，会存在无法访问情况
+############################
 
 
 # 获取所有 .md 文件
 weekly_files = [f for f in os.listdir('weekly-master/docs') if f.endswith('.md')]
 
-# 创建一个集合来存储不重复的主机
 weekly_hosts = set()
 
 # 遍历所有 .md 文件
 for md_file in weekly_files:
     md_file_path = os.path.join('weekly-master/docs', md_file)
     
-    # 读取每个Markdown文件内容
     with open(md_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 将Markdown转换为HTML
     html = markdown.markdown(content)
 
-    # 使用BeautifulSoup解析HTML
     soup = BeautifulSoup(html, 'html.parser')
 
     # 提取所有链接
     urls = [a['href'] for a in soup.find_all('a', href=True)]
 
-    # 提取每个URL的host并添加到集合
     for url in urls:
         try:
             parsed_url = urlparse(url)
-            host = parsed_url.netloc  # 提取URL中的host
-            if host:  # 确保host存在
+            host = parsed_url.netloc  
+            if host: 
                 weekly_hosts.add(host)
         except Exception as e:
             print(f"Error parsing URL {url} in file {md_file}: {e}")
+
+weekly_hosts -= weekly_hosts & error_set
+
+####
+#读取awesome
+######
+
 awesome_files = [f for f in os.listdir('awesome') if f.endswith('.html')]
 
-# 创建一个集合来存储不重复的主机
 
 awesome_hosts = set()
 
-# 遍历所有 .html 文件
 for html_file in awesome_files:
     html_file_path = os.path.join('awesome', html_file)
     
@@ -194,11 +195,19 @@ for html_file in awesome_files:
         except Exception as e:
             print(f"Error parsing URL {url} in file {html_file}: {e}")
 
+awesome_hosts -= awesome_hosts & error_set
+
+#################
+##读取求职内容
+######################
+
+
 career_files = [f for f in os.listdir('career') if f.endswith('.md')]
 
 career_hosts = set()
 
 for md_file in career_files:
+
     md_file_path = os.path.join('career', md_file)
     
     with open(md_file_path, 'r', encoding='utf-8') as f:
@@ -220,65 +229,149 @@ for md_file in career_files:
                 career_hosts.add(host)
         except Exception as e:
             print(f"Error parsing URL {url} in file {md_file}: {e}")
+####
+
+#github上一些其他的*.md
+
+###
+md_files = [f for f in os.listdir('md') if f.endswith('.md')]
+
+md_hosts = set()
+
+for md_file in md_files:
+
+    md_file_path = os.path.join('md', md_file)
+    
+    with open(md_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    html = markdown.markdown(content)
+
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # 提取所有链接
+    urls = [a['href'] for a in soup.find_all('a', href=True)]
+
+    # 提取每个URL的host并添加到集合
+    for url in urls:
+        try:
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc  # 提取URL中的host
+            if host:  # 确保host存在
+                md_hosts.add(host)
+        except Exception as e:
+            print(f"Error parsing URL {url} in file {md_file}: {e}")
 
 
 ########################
-#数据包括谷歌学术+原本的url
+#数据包括谷歌学术+alexa1m_set+org_or_edu_urls+原本的origin_urls
 ########################
-combined_hosts = list(set(scholar_hosts + sorted_urls + list(url_result) + domains+list(weekly_hosts)+list(awesome_hosts)+list(career_hosts)))
 
-# 生成新的 background.js 内容
+
+combined_hosts = list(set().union(
+    scholar_hosts, alexa1m_set, org_or_edu_urls, begin_with_star_urls,
+    weekly_hosts, awesome_hosts, career_hosts, md_hosts
+))
+
 js_content_new = f"""
-const allowedUrls = {json.dumps(combined_hosts, ensure_ascii=False, indent=4)};
+const beginWithStar = {json.dumps(begin_with_star_urls, ensure_ascii=False, indent=4)};
+const beginWithoutStar = {json.dumps(combined_hosts, ensure_ascii=False, indent=4)};
+
+const allowedUrls = beginWithStar.concat(beginWithoutStar);  // concat 方法 gpt认为效率更高
 const blockedUrls = [
-  "*://www.google.com/search*",
-  ".*firefox.*",
-  ".*firefox",
-  "*://camo.githubusercontent.com/*" // 用于阻止包含“firefox”的 URL 的正则表达式
+    "*://www.google.com/search*",
+    ".*firefox.*",
+    ".*firefox",
+    "*://camo.githubusercontent.com/*" // 用于阻止包含“firefox”的 URL 的正则表达式
 ];
 
-const onBeforeRequest = (details) => {{
-  const url = new URL(details.url);
-  const host = url.hostname;
+let sets = {{}};
 
-  // 检查是否在被阻止的 URL 列表中
-  const isBlocked = blockedUrls.some(pattern => {{
-    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
-    return regex.test(details.url); // 检查整个 URL
-  }});
+browser.webRequest.onBeforeRequest.addListener((details) => {{
+    browser.tabs.query({{ currentWindow: true, active: true }}).then(tabs => {{
+        if (tabs[0]?.url) {{
+            const tabUrl = tabs[0].url;
+            const domain = new URL(details.url).host;
+            if (domain.includes('127.0.0.1') || domain.includes('localhost')) {{
+                return;
+            }}
 
-  if (isBlocked) {{
-    console.log(`Blocked URL: ${{details.url}}`);
-    return {{ cancel: true }}; // 拦截请求
-  }}
+            sets[tabUrl] = sets[tabUrl] || new Set();
+            sets[tabUrl].add(domain);
 
-  // 检查是否在允许的 URL 列表中
-  const isAllowed = allowedUrls.some(pattern => {{
-    // 处理通配符
-    if (pattern.startsWith("*.") && host.endsWith(pattern.slice(2))) {{
-      return true;
+            async function isDomainInStoredList(tabUrl, domain) {{
+                const result = await browser.storage.local.get();
+                const keys = Object.keys(result).filter(key => !key.startsWith("about:"));
+
+                for (const key of keys) {{
+                    try {{
+                        const keyHost = new URL(key).host;
+                        if (keyHost === new URL(tabUrl).host && result[key]?.includes(domain)) {{
+                            return true;
+                        }}
+                    }} catch (e) {{}} 
+                }}
+
+                return false;
+            }}
+
+            isDomainInStoredList(tabUrl, domain).then(isInList => {{
+                if (!isInList) {{
+                    browser.storage.local.get([tabUrl]).then(result => {{
+                        const storedSet = new Set(result[tabUrl] || []);
+                        storedSet.add(domain);
+                        browser.storage.local.set({{ [tabUrl]: Array.from(storedSet) }});
+                    }});
+                }}
+            }});
+        }}
+    }});
+    const url = new URL(details.url);
+    const host = url.hostname;
+
+    const isBlocked = blockedUrls.some(pattern => {{
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        return regex.test(details.url);
+    }});
+
+    if (isBlocked) {{
+        console.log(`Blocked URL: {{details.url}}`);
+        return {{ cancel: true }};
     }}
-    return host === pattern || host === 'www.' + pattern; // 检查主机名
-  }});
 
-  if (!isAllowed) {{
-    console.log(`Blocked URL: ${{details.url}}`);
-    return {{ cancel: true }}; // 拦截请求
-  }}
+    const isAllowed = allowedUrls.some(pattern => {{
+        if (pattern.startsWith("*.") && host.endsWith(pattern.slice(2))) {{
+            return true;
+        }}
+        return host === pattern || host === 'www.' + pattern;
+    }});
 
-  return {{ cancel: false }}; // 允许请求
-}};
+    if (!isAllowed) {{
+        console.log(`Blocked URL: {{details.url}}`);
+        return {{ cancel: true }};
+    }}
 
-// 监听所有请求
-browser.webRequest.onBeforeRequest.addListener(
-  onBeforeRequest,
-  {{ urls: ["<all_urls>"] }},
-  ["blocking"]
+    return {{ cancel: false }};
+}},
+{{ urls: ["*://*/*"] }},
+["blocking"]
 );
-"""
 
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {{
+    if (message === "LIST") {{
+        sendResponse(sets);
+    }}
+}});
+
+browser.runtime.onUninstall.addListener(() => {{
+    console.log('扩展已卸载，正在清理数据...');
+    browser.storage.local.clear()
+        .then(() => console.log('数据已清空'))
+        .catch((error) => console.error('清空数据时出错:', error));
+}});
+"""
 # 将生成的新内容写入到文件中
-with open('newbackground.js', 'w', encoding='utf-8') as js_file:
+with open('newbackground1.js', 'w', encoding='utf-8') as js_file:
     js_file.write(js_content_new)
 
-print("Combined and de-duplicated hosts saved to newbackground.js")
+print("Combined and de-duplicated hosts saved to newbackground1.js")
