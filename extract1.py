@@ -264,13 +264,28 @@ for md_file in md_files:
 
 
 ########################
+#这个是deepl翻译用的上的网址
+########################
+import re
+from urllib.parse import urlparse
+
+# 读取背景文件内容
+with open('md/background.js', 'r', encoding='utf-8') as file:
+    content = file.read()
+
+# 正则表达式匹配所有以 https:// 开头的链接，直到域名部分
+urls = re.findall(r'https://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}', content)
+
+
+deepl = [urlparse(url).netloc for url in urls]
+########################
 #数据包括谷歌学术+alexa1m_set+org_or_edu_urls+原本的origin_urls
 ########################
 
 
 combined_hosts = list(set().union(
-    scholar_hosts, alexa1m_set, org_or_edu_urls, begin_with_star_urls,
-    weekly_hosts, awesome_hosts, career_hosts, md_hosts
+    scholar_hosts, alexa1m_set, org_or_edu_urls, begin_without_star_urls ,
+    weekly_hosts, awesome_hosts, career_hosts, md_hosts,deepl
 ))
 
 js_content_new = f"""
@@ -371,7 +386,7 @@ browser.runtime.onUninstall.addListener(() => {{
 }});
 """
 # 将生成的新内容写入到文件中
-with open('newbackground1.js', 'w', encoding='utf-8') as js_file:
+with open('background1.js', 'w', encoding='utf-8') as js_file:
     js_file.write(js_content_new)
 
 print("Combined and de-duplicated hosts saved to newbackground1.js")
